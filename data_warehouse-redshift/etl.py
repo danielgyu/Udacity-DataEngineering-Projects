@@ -13,6 +13,7 @@ def insert_tables(cur, conn):
     for query in insert_table_queries:
         cur.execute(query)
         conn.commit()
+        print(f'insert complete : {query}')
 
 
 def main():
@@ -21,7 +22,7 @@ def main():
 
     conn = psycopg2.connect("host={} dbname={} user={} password={} port={}".format(*config['CLUSTER'].values()))
     cur = conn.cursor()
-    
+
     load_staging_tables(cur, conn)
     insert_tables(cur, conn)
 
