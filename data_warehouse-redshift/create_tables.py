@@ -4,12 +4,26 @@ from sql_queries import create_table_queries, drop_table_queries
 
 
 def drop_tables(cur, conn):
+    """
+    Drops the table for fresh creation.
+
+    Params
+    -----
+    cur : psycopg2 cursor
+    conn : psycop2 connection
+    """
     for query in drop_table_queries:
         cur.execute(query)
         conn.commit()
 
 
 def create_tables(cur, conn):
+    """
+    Creates staging, dimension and star tables for data loading.
+
+    cur : psycopg2 cursor
+    conn : psycopg2 connection
+    """
     for query in create_table_queries:
         cur.execute(query)
         conn.commit()

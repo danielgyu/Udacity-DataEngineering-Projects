@@ -61,12 +61,12 @@ staging_songs_table_create = ("""
 songplay_table_create = ("""
                          CREATE TABLE IF NOT EXISTS songplays (
                             songplay_id INTEGER IDENTITY(1, 1) PRIMARY KEY,
-                            start_time TIMESTAMP,
-                            user_id INTEGER,
-                            level VARCHAR,
-                            song_id VARCHAR,
-                            artist_id VARCHAR,
-                            session_id INTEGER,
+                            start_time TIMESTAMP NOT NULL,
+                            user_id INTEGER NOT NULL,
+                            level VARCHAR NOT NULL,
+                            song_id VARCHAR NOT NULL,
+                            artist_id VARCHAR NOT NULL,
+                            session_id INTEGER NOT NULL,
                             location VARCHAR,
                             user_agent VARCHAR )
                          DISTSTYLE key
@@ -88,10 +88,10 @@ user_table_create = ("""
 song_table_create = ("""
                      CREATE TABLE IF NOT EXISTS songs (
                          song_id VARCHAR PRIMARY KEY,
-                         title VARCHAR,
-                         artist_id VARCHAR,
-                         year SMALLINT,
-                         duration FLOAT )
+                         title VARCHAR NOT NULL,
+                         artist_id VARCHAR NOT NULL,
+                         year SMALLINT NOT NULL,
+                         duration FLOAT NOT NULL)
                      SORTKEY (song_id);
 """)
 
