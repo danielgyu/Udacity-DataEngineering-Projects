@@ -10,11 +10,12 @@ from pyspark.sql.types import IntegerType, TimestampType
 config = configparser.ConfigParser()
 config.read('dl.cfg')
 
-os.environ['AWS_ACCESS_KEY_ID']=config['AWS_ACCESS_KEY_ID']
-os.environ['AWS_SECRET_ACCESS_KEY']=config['AWS_SECRET_ACCESS_KEY']
+os.environ['AWS_ACCESS_KEY_ID']=config['AWS']['AWS_ACCESS_KEY_ID']
+os.environ['AWS_SECRET_ACCESS_KEY']=config['AWS']['AWS_SECRET_ACCESS_KEY']
 
 
 def create_spark_session():
+    """create spark session for data processing"""
     spark = SparkSession \
         .builder \
         .config("spark.jars.packages", "org.apache.hadoop:hadoop-aws:2.7.0") \
@@ -26,7 +27,7 @@ def process_song_data(spark, input_data, output_data):
     """
     Processes the song data and extracts necessary columns for two tables to be created, songs and artists.
     Then, each source is written to a S3 bucket in the parquet format.
-
+        
     Params
     ------
     spark : pyspark session
@@ -43,14 +44,16 @@ def process_song_data(spark, input_data, output_data):
     df = spark.read.json(song_data).dropDuplicates()
 
     # extract columns to create songs table
-    songs_table = df.select("song_id", "title", "artist_id", "year", "duration").dropDuplicates()
+    # song_id, title, artist_id, year, duration
+    songs_table = df.select("song_id", "title", "artist_id", "year", "duration").dropDuplicates(['song_id'])
     
     # write songs table to parquet files partitioned by year and artist
     song_path = output_data + "songs/"
     songs_table.write.mode("overwrite").partitionBy("year", "artist_id").parquet(song_path)
 
     # extract columns to create artists table
-    artists_table = df.select("artist_id", "name", "location", "latitude", "longitude").dropDuplicates()
+    # artist_id, name, location, lattitude, longitude
+    artists_table = df.select("artist_id", "artist_name", "artist_location", "artist_latitude", "artist_longitude").dropDuplicates(['artist_id'])
     
     # write artists table to parquet files
     artist_path = output_data + "artists/"
@@ -88,10 +91,10 @@ def process_log_data(spark, input_data, output_data):
                             "lastName as last_name",
                             "gender",
                             "level") \
-                    .dropDuplicates()
+                    .dropDuplicates(['userId'])
     
     # write users table to parquet files
-    users = output_data + "users/"
+    users_path = output_data + "users/"
     users_table.write.mode("overwrite").parquet(users_path)
 
     # create timestamp column from original timestamp column
@@ -111,8 +114,8 @@ def process_log_data(spark, input_data, output_data):
         SELECT
             start_time,
             hour(start_time) as hour,
-            day(start_time) as day,
-            week(start_time) as week,
+            dayofmonth(start_time) as day,
+            weekofyear(start_time) as week,
             month(start_time) as month,
             year(start_time) as year,
             dayofweek(start_time) as weekday
@@ -120,7 +123,7 @@ def process_log_data(spark, input_data, output_data):
             log_data_view
         WHERE
             start_time IS NOT NULL
-    """)
+    """).dropDuplicates(['start_time'])
     
     # write time table to parquet files partitioned by year and month
     time_path = output_data + "time/"
@@ -131,7 +134,7 @@ def process_log_data(spark, input_data, output_data):
     # read in song data to use for songplays table
     song_data = input_data + "song_data/*/*/*/*"
     song_df = spark.read.json(song_data).dropDuplicates()
-    song_df.createOrReplaceView('song_data_view')
+    song_df.createOrReplaceTempView('song_data_view')
 
     # extract columns from joined song and log datasets to create songplays table 
     # songplay_id, start_time, user_id, level, song_id, artist_id, session_id, location, user_agent
@@ -145,7 +148,9 @@ def process_log_data(spark, input_data, output_data):
             s.artist_id,
             l.sessionId AS session_id,
             l.location,
-            l.userAgent AS user_agent
+            l.userAgent AS user_agent,
+            year(l.start_time) as year,
+            month(l.start_time) as month
         FROM
             log_data_view l
         JOIN
@@ -161,7 +166,7 @@ def main():
     spark = create_spark_session()
     input_data = "s3a://udacity-dend/"
     output_data = "s3a://udacity-emr/sparkify/data-lake-project/"
-
+    
     process_song_data(spark, input_data, output_data)
     process_log_data(spark, input_data, output_data)
 
